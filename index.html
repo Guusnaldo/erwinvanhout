@@ -27,6 +27,7 @@
       <span>Portfolio in parkeervorm</span>
     </div>
     <div class="spacer"></div>
+    <span class="pill progress" id="level">Niveau P1</span>
     <span class="pill progress" id="progress">0 / 6 projecten</span>
     <button class="pill" id="btn-list" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
@@ -49,19 +50,19 @@
 
   <div class="touch-controls">
     <div class="tc-group">
-      <button class="tc-btn" id="tc-left" type="button" aria-label="Stuur links">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
-      </button>
-      <button class="tc-btn" id="tc-right" type="button" aria-label="Stuur rechts">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-    <div class="tc-group">
       <button class="tc-btn" id="tc-down" type="button" aria-label="Achteruit">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>
       </button>
       <button class="tc-btn" id="tc-up" type="button" aria-label="Vooruit">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>
+      </button>
+    </div>
+    <div class="tc-group">
+      <button class="tc-btn" id="tc-left" type="button" aria-label="Stuur links">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <button class="tc-btn" id="tc-right" type="button" aria-label="Stuur rechts">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </button>
     </div>
   </div>
@@ -71,7 +72,7 @@
       <div class="intro-p">P</div>
       <h1>Erwin van Hout</h1>
       <p class="intro-sub">Portfolio in parkeervorm</p>
-      <p class="uitleg">Welkom op de parkeerplaats. Rijd rond met de auto en parkeer in een vak: elke parkeerplek onthult een project waar Erwin aan werkte. Lukt het je om alle zes de plekken te vinden?</p>
+      <p class="uitleg">Welkom in de parkeergarage. Rijd rond met de auto en parkeer in een vak: elke parkeerplek onthult een project waar Erwin aan werkte. De meeste projecten vind je op de begane grond; de helling aan de linkerkant brengt je naar het tweede niveau met de laatste twee. Lukt het je om alle zes de plekken te vinden?</p>
       <button class="btn-primary" id="btn-start" type="button">Starten</button>
       <span class="intro-alt">Liever niet rijden? <a href="#" id="intro-list">Bekijk de projecten als lijst</a></span>
     </div>
@@ -145,6 +146,7 @@
   </div>
 
   <div class="toast" id="toast" hidden>Alle projecten bekeken, bedankt voor je bezoek</div>
+  <div class="toast" id="level-toast" hidden></div>
 
   <script src="js/projects.js"></script>
   <script src="js/game.js"></script>

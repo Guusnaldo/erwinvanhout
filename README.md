@@ -1,6 +1,6 @@
 # Erwin van Hout, portfolio in parkeervorm
 
-Persoonlijke portfoliosite als verkennend parkeerspel. Je rijdt met een auto over een parkeerdek; elke keer dat je netjes in een vak parkeert, opent een van Erwin's parkeerprojecten. Er zijn ook vakken voor "Over Erwin" en "Contact", en een gewone projectenlijst voor wie liever niet rijdt.
+Persoonlijke portfoliosite als verkennend parkeerspel. Je rijdt met een auto door een parkeergarage met twee niveaus; elke keer dat je netjes in een vak parkeert, opent een van Erwin's parkeerprojecten. De meeste projecten staan op de begane grond, via de helling links rijd je naar het tweede niveau. Er zijn ook vakken voor "Over Erwin" en "Contact", laadvakken met laadpalen als aankleding, en een gewone projectenlijst voor wie liever niet rijdt.
 
 ## Inhoud vervangen (belangrijk)
 
@@ -9,12 +9,13 @@ Alle projectinhoud is nu **voorbeeldcontent** en staat in [`js/projects.js`](js/
 - `PROJECTS`: de zes projecten. Per project: titel, type (bepaalt het pictogram), plaats, periode, rol, capaciteit, opdrachtgever, status, intro, de tekstblokken opgave, aanpak en resultaat, kenmerken en tags. Zet `placeholder` op `false` of verwijder de regel zodra een project echt is; zolang die op `true` staat toont de site een "voorbeeldproject"-label.
 - `OVER_TEKST` en `CONTACT_TEKST`: de teksten achter de vakken Over en Contact.
 
-Meer of minder dan zes projecten kan ook: pas dan in `js/game.js` de `TOP_ORDER`-lijst aan (`p0` t/m `p5` zijn projectindexen, `static` is een bezette plek).
+Meer of minder dan zes projecten kan ook: pas dan in `js/game.js` de `NIVEAUS`-specificaties aan (`p0` t/m `p5` zijn projectindexen, `static` is een bezette plek, `laad` en `laadS` zijn laadvakken en `leeg` is een vrij vak).
 
 ## Bediening
 
 - Toetsenbord: pijltjestoetsen of WASD, `R` zet de auto terug op start.
-- Aanraakscherm: stuur- en gasknoppen op het scherm.
+- Aanraakscherm: gas en achteruit links, sturen rechts.
+- De helling aan de linkerkant brengt je naar het andere niveau.
 - Parkeren: rijd een vak in, kom tot stilstand en sta recht; na een halve seconde opent het project.
 - Voortgang wordt lokaal bewaard (localStorage).
 

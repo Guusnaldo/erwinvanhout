@@ -25,7 +25,7 @@ html, body {
 
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #79945c;
+  background: #26292c;
   color: var(--tekst);
   -webkit-font-smoothing: antialiased;
 }
@@ -584,6 +584,8 @@ body {
   padding: 12px 24px;
   box-shadow: var(--shadow);
 }
+
+#level-toast { top: 124px; }
 
 [hidden] { display: none !important; }
 

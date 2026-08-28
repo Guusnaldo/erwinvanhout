@@ -1,4 +1,4 @@
-/* Portfolio-parkeerplaats: rijd rond, parkeer in een vak en bekijk een project. */
+/* Portfolio-parkeergarage: rijd rond over twee niveaus, parkeer in een vak en bekijk een project. */
 (function () {
   "use strict";
 
@@ -9,49 +9,81 @@
   const SPOT_W = 104;
   const SPOT_H = 184;
 
-  /* Bovenste rij: 8 vakken, 6 projecten en 2 bezette plekken. */
-  const topRowX = (WORLD.w - 8 * SPOT_W) / 2;
-  const TOP_ORDER = ["p0", "p1", "static", "p2", "p3", "static", "p4", "p5"];
+  /* twee rijlanen (hartlijnen), met een ruim open middengebied ertussen */
+  const LAAN_A = 320;
+  const LAAN_B = 662;
 
-  /* Onderste rij: bezet, Over, Contact, bezet. */
-  const BOT_ORDER = ["static", "over", "contact", "static"];
-  const botRowX = topRowX + 2 * SPOT_W;
-  const botRowY = WORLD.h - WALL - SPOT_H;
+  /* de helling naar het andere niveau, tegen de linkerwand */
+  const RAMP = { x: 40, y: 375, w: 210, h: 230 };
 
-  const spots = [];
-  const staticCars = [];
-  const STATIC_COLORS = ["#c3c6c9", "#2e3134", "#39506b", "#44573f"];
-  let staticCount = 0;
-
-  function addSpot(x, y, opening, key) {
-    if (key === "static") {
-      const color = STATIC_COLORS[staticCount++ % STATIC_COLORS.length];
-      staticCars.push({ x: x + 15, y: y + 17, w: SPOT_W - 30, h: SPOT_H - 34, color });
-      spots.push({ x, y, w: SPOT_W, h: SPOT_H, opening, kind: "static" });
-      return;
-    }
-    if (key === "over" || key === "contact") {
-      spots.push({ x, y, w: SPOT_W, h: SPOT_H, opening, kind: key, holdT: 0 });
-      return;
-    }
-    const project = PROJECTS[parseInt(key.slice(1), 10)];
-    spots.push({ x, y, w: SPOT_W, h: SPOT_H, opening, kind: "project", project, holdT: 0 });
-  }
-
-  TOP_ORDER.forEach(function (key, i) {
-    addSpot(topRowX + i * SPOT_W, WALL + 8, "down", key);
-  });
-  BOT_ORDER.forEach(function (key, i) {
-    addSpot(botRowX + i * SPOT_W, botRowY - 8, "up", key);
-  });
-
-  /* groenvakken met bomen, midden op het terrein */
-  const planters = [
-    { x: 545, y: 430, w: 190, h: 122 },
-    { x: 925, y: 430, w: 190, h: 122 }
+  /* kolommen, op beide niveaus gelijk: tegen de wanden en een rij in het midden */
+  const KOLOMMEN = [
+    { x: 561, y: 18, w: 22, h: 24 }, { x: 769, y: 18, w: 22, h: 24 }, { x: 977, y: 18, w: 22, h: 24 },
+    { x: 561, y: 938, w: 22, h: 24 }, { x: 769, y: 938, w: 22, h: 24 }, { x: 977, y: 938, w: 22, h: 24 },
+    { x: 548, y: 478, w: 24, h: 24 }, { x: 788, y: 478, w: 24, h: 24 }, { x: 1028, y: 478, w: 24, h: 24 }
   ];
 
-  const obstacles = staticCars.concat(planters);
+  const STATIC_COLORS = ["#c3c6c9", "#2e3134", "#39506b", "#44573f", "#6d6f72", "#8a4a3f"];
+  const EV_COLOR = "#4e8e8a";
+  let staticCount = 0;
+
+  /* Een niveau bestaat uit vier rijen vakken:
+     top (8, tegen de bovenwand), midUp en midDown (7, rug aan rug in het midden)
+     en bottom (4, tegen de onderwand). Sleutels: p0 t/m p5 (projecten), over,
+     contact, static (bezet), leeg (vrij vak), laad (laadpaal, vrij) en
+     laadS (laadpaal met aangesloten elektrische auto). */
+  function maakNiveau(spec) {
+    const spots = [], statics = [], posts = [];
+
+    function vak(x, y, opening, key) {
+      const s = { x, y, w: SPOT_W, h: SPOT_H, opening, kind: key };
+      const cx = x + SPOT_W / 2;
+      const postY = opening === "down" ? y + 6 : y + SPOT_H - 16;
+
+      if (key === "static" || key === "laadS") {
+        const color = key === "laadS" ? EV_COLOR : STATIC_COLORS[staticCount++ % STATIC_COLORS.length];
+        const auto = { x: x + 15, y: y + 17, w: SPOT_W - 30, h: SPOT_H - 34, color, ev: key === "laadS" };
+        statics.push(auto);
+        s.kind = key === "laadS" ? "laad" : "static";
+      }
+      if (key === "laad" || key === "laadS") {
+        const post = { x: cx - 5, y: postY, w: 10, h: 10, cx, opening, cable: key === "laadS" };
+        posts.push(post);
+        s.kind = "laad";
+      }
+      if (key === "over" || key === "contact") s.holdT = 0;
+      if (key.charAt(0) === "p" && key.length === 2) {
+        s.kind = "project";
+        s.project = PROJECTS[parseInt(key.slice(1), 10)];
+        s.holdT = 0;
+      }
+      spots.push(s);
+    }
+
+    const topX = (WORLD.w - 8 * SPOT_W) / 2;
+    spec.top.forEach(function (k, i) { vak(topX + i * SPOT_W, WALL + 8, "down", k); });
+    spec.bottom.forEach(function (k, i) { vak(468 + i * SPOT_W, WORLD.h - WALL - SPOT_H - 8, "up", k); });
+
+    const obstacles = statics.concat(KOLOMMEN, posts);
+    return { naam: spec.naam, spots, statics, posts, obstacles };
+  }
+
+  /* het meeste zit op de begane grond: vier projecten plus Over en Contact */
+  const NIVEAUS = [
+    maakNiveau({
+      naam: "P1",
+      top: ["p0", "static", "p1", "laadS", "laad", "p2", "static", "p3"],
+      bottom: ["static", "over", "contact", "static", "static", "leeg"]
+    }),
+    maakNiveau({
+      naam: "P2",
+      top: ["static", "p4", "laadS", "laad", "static", "leeg", "p5", "static"],
+      bottom: ["leeg", "static", "static", "leeg", "static", "leeg"]
+    })
+  ];
+
+  let level = 0;
+  function cur() { return NIVEAUS[level]; }
 
   /* ---------- voortgang ---------- */
   const STORE_KEY = "evh_visited_v1";
@@ -68,9 +100,11 @@
   /* ---------- auto ---------- */
   const CAR = { len: 124, wid: 56 };
   const START = { x: 1290, y: 620, heading: -Math.PI / 2 };
-  const car = { x: START.x, y: START.y, heading: START.heading, v: 0 };
+  const car = { x: START.x, y: START.y, heading: START.heading, v: 0, braking: false, reversing: false };
 
   function resetCar() {
+    level = 0;
+    updateLevelUI();
     car.x = START.x; car.y = START.y; car.heading = START.heading; car.v = 0;
   }
 
@@ -90,6 +124,7 @@
   }
 
   function collides(x, y, heading) {
+    const obstacles = cur().obstacles;
     const corners = carCorners(x, y, heading);
     for (let i = 0; i < corners.length; i++) {
       const p = corners[i];
@@ -156,6 +191,9 @@
     car.v = Math.max(-130, Math.min(255, car.v));
     if (Math.abs(car.v) < 2 && input.throttle === 0) car.v = 0;
 
+    car.braking = input.throttle < 0 && car.v > 1;
+    car.reversing = car.v < -1;
+
     const eff = Math.max(-150, Math.min(150, car.v));
     const prev = { x: car.x, y: car.y, heading: car.heading };
     car.heading += input.steer * 0.0165 * eff * dt;
@@ -167,7 +205,30 @@
       car.v = Math.abs(car.v) < 30 ? 0 : car.v * -0.3;
     }
 
+    checkRamp();
     checkParking(dt);
+  }
+
+  /* ---------- helling naar het andere niveau ---------- */
+  function checkRamp() {
+    if (uiOpen) return;
+    const inRamp = car.x > RAMP.x && car.x < RAMP.x + RAMP.w &&
+                   car.y > RAMP.y && car.y < RAMP.y + RAMP.h;
+    /* alleen wisselen als de auto de helling in rijdt (naar links beweegt) */
+    if (inRamp && Math.cos(car.heading) * car.v < -30) {
+      switchLevel(1 - level);
+    }
+  }
+
+  function switchLevel(target) {
+    level = target;
+    exitSpot = null;
+    car.x = 310;
+    car.y = RAMP.y + RAMP.h / 2;
+    car.heading = 0; /* de helling af, het middengebied in */
+    car.v = 100;
+    updateLevelUI();
+    showLevelToast("Je bent nu op niveau " + cur().naam);
   }
 
   /* ---------- parkeerdetectie ---------- */
@@ -181,9 +242,10 @@
   }
 
   function checkParking(dt) {
+    const spots = cur().spots;
     for (let i = 0; i < spots.length; i++) {
       const s = spots[i];
-      if (s.kind === "static") continue;
+      if (s.kind !== "project" && s.kind !== "over" && s.kind !== "contact") continue;
       const inside = car.x > s.x + 8 && car.x < s.x + s.w - 8 &&
                      car.y > s.y + 10 && car.y < s.y + s.h - 10;
       if (exitSpot === s) {
@@ -274,38 +336,38 @@
 
   /* ---------- tekenen ---------- */
   const KLEUR = {
-    gras: "#79945c",
-    grasDonker: "rgba(58, 82, 40, 0.16)",
-    stoep: "#b5b8ba",
-    stoepRand: "#9a9da0",
-    asfalt: "#54575b",
-    lijn: "rgba(238, 238, 234, 0.85)",
-    lijnZwak: "rgba(238, 238, 234, 0.4)",
+    buiten: "#26292c",
+    beton: "#63666a",
+    wand: "#43464a",
+    kolom: "#a7abb0",
+    kolomRand: "#7d8185",
+    lijn: "rgba(240, 240, 236, 0.85)",
+    lijnZwak: "rgba(240, 240, 236, 0.4)",
     blauw: "#1259a6",
-    geel: "#e8b62a"
+    geel: "#d8ac2b",
+    groen: "rgba(38, 132, 74, 0.32)",
+    groenFel: "#2e9e5b"
   };
 
-  /* vaste posities voor grasvlekken, asfaltreparaties en olievlekken */
-  const GRAS_VLEKKEN = [
-    [90, 120, 60], [1470, 200, 50], [60, 700, 45], [1500, 820, 55],
-    [700, 30, 40], [300, 950, 50], [1200, 960, 40]
-  ];
-  const ASFALT_PLAKKEN = [
-    { x: 260, y: 500, w: 230, h: 74 }, { x: 1180, y: 250, w: 90, h: 190 },
-    { x: 700, y: 640, w: 170, h: 60 }
+  /* vaste posities voor reparatieplakken, olievlekken, dilatatievoegen en tl-balken */
+  const VLOER_PLAKKEN = [
+    { x: 300, y: 700, w: 230, h: 64 }, { x: 1120, y: 250, w: 90, h: 150 }
   ];
   const OLIE_VLEKKEN = [
-    [455, 150, 26, 14], [820, 700, 30, 16], [1050, 330, 22, 12], [620, 880, 26, 13]
+    [420, 300, 26, 14], [900, 720, 30, 16], [1150, 500, 22, 12], [700, 310, 24, 13]
   ];
+  const VOEGEN_X = [520, 1040];
+  const LICHT_X = [260, 470, 680, 890, 1100, 1310];
+  const LICHT_EXTRA = [[1300, 490], [145, 250], [145, 760]];
 
-  /* asfaltkorrel als herhalend patroon */
+  /* betonkorrel als herhalend patroon */
   const noiseCanvas = document.createElement("canvas");
   noiseCanvas.width = noiseCanvas.height = 96;
   (function () {
     const nctx = noiseCanvas.getContext("2d");
     for (let i = 0; i < 950; i++) {
       const shade = Math.random() > 0.5 ? 255 : 0;
-      nctx.fillStyle = "rgba(" + shade + "," + shade + "," + shade + "," + (0.02 + Math.random() * 0.045).toFixed(3) + ")";
+      nctx.fillStyle = "rgba(" + shade + "," + shade + "," + shade + "," + (0.02 + Math.random() * 0.04).toFixed(3) + ")";
       nctx.fillRect(Math.floor(Math.random() * 96), Math.floor(Math.random() * 96), 1.6, 1.6);
     }
   })();
@@ -323,80 +385,105 @@
 
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    /* gras als omgeving van het terrein */
-    ctx.fillStyle = KLEUR.gras;
+    ctx.fillStyle = KLEUR.buiten;
     ctx.fillRect(0, 0, viewW, viewH);
 
     ctx.scale(cam.scale, cam.scale);
     ctx.translate(-cam.ox, -cam.oy);
 
-    ctx.fillStyle = KLEUR.grasDonker;
-    GRAS_VLEKKEN.forEach(function (v) {
-      ctx.beginPath();
-      ctx.ellipse(v[0], v[1], v[2], v[2] * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    /* stoeprand en asfalt */
-    ctx.fillStyle = KLEUR.stoep;
-    roundRect(8, 8, WORLD.w - 16, WORLD.h - 16, 10);
-    ctx.fill();
-    ctx.strokeStyle = KLEUR.stoepRand;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = KLEUR.asfalt;
+    /* wanden en vloer */
+    ctx.fillStyle = KLEUR.wand;
+    ctx.fillRect(4, 4, WORLD.w - 8, WORLD.h - 8);
+    ctx.fillStyle = KLEUR.beton;
     ctx.fillRect(WALL, WALL, WORLD.w - 2 * WALL, WORLD.h - 2 * WALL);
 
-    /* inrit: asfalt loopt onderaan door de stoeprand naar buiten */
-    ctx.fillStyle = KLEUR.asfalt;
-    ctx.fillRect(1240, WORLD.h - WALL, 100, WALL - 4);
+    if (level === 0) {
+      /* inrit: vloer loopt onderaan door de wand naar buiten */
+      ctx.fillStyle = KLEUR.beton;
+      ctx.fillRect(1240, WORLD.h - WALL, 100, WALL - 4);
+    }
 
-    /* wegdektextuur en slijtage */
+    /* vloertextuur, slijtage en voegen */
     if (!noisePattern) noisePattern = ctx.createPattern(noiseCanvas, "repeat");
     ctx.fillStyle = noisePattern;
     ctx.fillRect(WALL, WALL, WORLD.w - 2 * WALL, WORLD.h - 2 * WALL);
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
-    ASFALT_PLAKKEN.forEach(function (p) { ctx.fillRect(p.x, p.y, p.w, p.h); });
-    ctx.fillStyle = "rgba(18, 20, 24, 0.1)";
+    VLOER_PLAKKEN.forEach(function (p) { ctx.fillRect(p.x, p.y, p.w, p.h); });
+    ctx.fillStyle = "rgba(14, 16, 20, 0.1)";
     OLIE_VLEKKEN.forEach(function (v) {
       ctx.beginPath();
       ctx.ellipse(v[0], v[1], v[2], v[3], 0.4, 0, Math.PI * 2);
       ctx.fill();
     });
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.08)";
+    ctx.lineWidth = 3;
+    VOEGEN_X.forEach(function (vx) {
+      ctx.beginPath();
+      ctx.moveTo(vx, WALL);
+      ctx.lineTo(vx, WORLD.h - WALL);
+      ctx.stroke();
+    });
 
-    /* rijstroken met pijlen */
-    drawLane(320, 1);
-    drawLane(662, -1);
-
-    /* kruisarcering naast de inrit */
-    drawHatch(1380, 250, 140, 170);
-
-    /* startvak */
+    /* niveaunaam op de vloer */
     ctx.save();
-    ctx.strokeStyle = KLEUR.lijn;
-    ctx.lineWidth = 4;
-    ctx.setLineDash([14, 12]);
-    ctx.strokeRect(START.x - 70, START.y - 88, 140, 176);
-    ctx.setLineDash([]);
-    ctx.fillStyle = KLEUR.lijn;
-    ctx.font = "700 24px Inter, sans-serif";
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 200px Inter, sans-serif";
     ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("START", START.x, START.y + 118);
+    ctx.textBaseline = "middle";
+    ctx.fillText(cur().naam, 790, 494);
     ctx.restore();
 
-    drawSign(1478, 560);
+    /* twee rijlanen met tegengestelde richtingen */
+    drawLane(LAAN_A);
+    drawLane(LAAN_B);
 
-    spots.forEach(drawSpot);
-    planters.forEach(drawPlanter);
-    staticCars.forEach(drawStaticCar);
+    drawRamp();
+
+    if (level === 0) {
+      /* startvak bij de inrit */
+      ctx.save();
+      ctx.strokeStyle = KLEUR.lijn;
+      ctx.lineWidth = 4;
+      ctx.setLineDash([14, 12]);
+      ctx.strokeRect(START.x - 70, START.y - 88, 140, 176);
+      ctx.setLineDash([]);
+      ctx.fillStyle = KLEUR.lijn;
+      ctx.font = "700 24px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText("START", START.x, START.y - 102);
+      ctx.restore();
+      drawSign(1478, 560);
+    }
+
+    cur().spots.forEach(drawSpot);
+    KOLOMMEN.forEach(drawKolom);
+    cur().posts.forEach(drawPost);
+    cur().statics.forEach(drawStaticCar);
     drawHero();
-    spots.forEach(drawHoldRing);
+    cur().spots.forEach(drawHoldRing);
+    drawLichten();
   }
 
-  function drawLane(y, dir) {
+  function drawArrow(x, y, dir) {
+    ctx.strokeStyle = KLEUR.lijnZwak;
+    ctx.fillStyle = KLEUR.lijnZwak;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(x - 26 * dir, y);
+    ctx.lineTo(x + 14 * dir, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 30 * dir, y);
+    ctx.lineTo(x + 8 * dir, y - 10);
+    ctx.lineTo(x + 8 * dir, y + 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawLane(y) {
     ctx.save();
     ctx.strokeStyle = KLEUR.lijnZwak;
     ctx.lineWidth = 5;
@@ -406,42 +493,62 @@
     ctx.lineTo(WORLD.w - 120, y);
     ctx.stroke();
     ctx.setLineDash([]);
-
-    /* geschilderde rijrichtingpijlen */
-    [380, 780, 1180].forEach(function (x) {
-      const y2 = y + (y < WORLD.h / 2 ? 62 : -62);
-      ctx.strokeStyle = KLEUR.lijnZwak;
-      ctx.fillStyle = KLEUR.lijnZwak;
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.moveTo(x - 26 * dir, y2);
-      ctx.lineTo(x + 14 * dir, y2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + 30 * dir, y2);
-      ctx.lineTo(x + 8 * dir, y2 - 10);
-      ctx.lineTo(x + 8 * dir, y2 + 10);
-      ctx.closePath();
-      ctx.fill();
-    });
+    /* rechts rijden: onderste helft naar rechts, bovenste naar links */
+    [420, 840, 1260].forEach(function (x) { drawArrow(x, y + 46, 1); });
+    [300, 720, 1140].forEach(function (x) { drawArrow(x, y - 46, -1); });
     ctx.restore();
   }
 
-  function drawHatch(x, y, w, h) {
+  function drawRamp() {
+    const naar = level === 0 ? "P2" : "P1";
     ctx.save();
-    ctx.strokeStyle = "rgba(238, 238, 234, 0.45)";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(x, y, w, h);
-    ctx.beginPath();
-    ctx.rect(x, y, w, h);
-    ctx.clip();
-    ctx.lineWidth = 4;
-    for (let d = -h; d < w; d += 34) {
+
+    /* hellingvlak met dieptegradient */
+    const grad = ctx.createLinearGradient(RAMP.x + RAMP.w, 0, RAMP.x, 0);
+    grad.addColorStop(0, "rgba(0, 0, 0, 0)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0.4)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(RAMP.x, RAMP.y, RAMP.w, RAMP.h);
+
+    /* geel-zwarte randmarkering langs beide zijden */
+    [RAMP.y, RAMP.y + RAMP.h - 14].forEach(function (ry) {
+      ctx.fillStyle = KLEUR.geel;
+      ctx.fillRect(RAMP.x, ry, RAMP.w, 14);
+      ctx.save();
       ctx.beginPath();
-      ctx.moveTo(x + d, y + h);
-      ctx.lineTo(x + d + h, y);
+      ctx.rect(RAMP.x, ry, RAMP.w, 14);
+      ctx.clip();
+      ctx.strokeStyle = "rgba(20, 20, 20, 0.8)";
+      ctx.lineWidth = 7;
+      for (let d = -20; d < RAMP.w; d += 22) {
+        ctx.beginPath();
+        ctx.moveTo(RAMP.x + d, ry + 16);
+        ctx.lineTo(RAMP.x + d + 16, ry - 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+
+    /* pijlen de helling op */
+    const rcy = RAMP.y + RAMP.h / 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+    ctx.lineWidth = 8;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    [210, 160, 110].forEach(function (x) {
+      ctx.beginPath();
+      ctx.moveTo(x + 16, rcy - 26);
+      ctx.lineTo(x - 4, rcy);
+      ctx.lineTo(x + 16, rcy + 26);
       ctx.stroke();
-    }
+    });
+
+    /* bestemming boven de helling */
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.font = "700 20px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("naar " + naar, RAMP.x + RAMP.w / 2, RAMP.y - 14);
     ctx.restore();
   }
 
@@ -471,9 +578,13 @@
   function drawSpot(s) {
     ctx.save();
 
-    /* de vakken Over en Contact krijgen blauw wegdek, zoals een speciaal vak */
+    /* speciale vakken krijgen gekleurd wegdek */
     if (s.kind === "over" || s.kind === "contact") {
       ctx.fillStyle = "rgba(18, 89, 166, 0.32)";
+      ctx.fillRect(s.x + 4, s.y + 4, s.w - 8, s.h - 8);
+    }
+    if (s.kind === "laad") {
+      ctx.fillStyle = KLEUR.groen;
       ctx.fillRect(s.x + 4, s.y + 4, s.w - 8, s.h - 8);
     }
 
@@ -486,6 +597,22 @@
       ctx.moveTo(s.x, s.y); ctx.lineTo(s.x, s.y + s.h); ctx.lineTo(s.x + s.w, s.y + s.h); ctx.lineTo(s.x + s.w, s.y);
     }
     ctx.stroke();
+
+    /* bliksem op het wegdek van laadvakken */
+    if (s.kind === "laad") {
+      const cx = s.x + s.w / 2;
+      const cy = s.y + s.h / 2;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.beginPath();
+      ctx.moveTo(cx + 4, cy - 16);
+      ctx.lineTo(cx - 7, cy + 3);
+      ctx.lineTo(cx - 1, cy + 3);
+      ctx.lineTo(cx - 4, cy + 16);
+      ctx.lineTo(cx + 7, cy - 3);
+      ctx.lineTo(cx + 1, cy - 3);
+      ctx.closePath();
+      ctx.fill();
+    }
 
     if (s.kind === "project" || s.kind === "over" || s.kind === "contact") {
       const label = s.kind === "project" ? s.project.kort : (s.kind === "over" ? "Over Erwin" : "Contact");
@@ -522,55 +649,45 @@
     ctx.restore();
   }
 
-  function drawHoldRing(s) {
-    if (!s.holdT || s.holdT < 0.06) return;
-    const frac = Math.min(1, s.holdT / 0.55);
-    const cx = s.x + s.w / 2;
-    const cy = s.y + s.h / 2;
+  function drawKolom(k) {
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 54, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = KLEUR.blauw;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 54, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
-    ctx.stroke();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.fillRect(k.x + 4, k.y + 5, k.w, k.h);
+    ctx.fillStyle = KLEUR.kolom;
+    ctx.fillRect(k.x, k.y, k.w, k.h);
+    ctx.strokeStyle = KLEUR.kolomRand;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(k.x, k.y, k.w, k.h);
     ctx.restore();
   }
 
-  function drawPlanter(p) {
+  function drawPost(p) {
     ctx.save();
-    /* stoepband rond het groenvak */
-    ctx.fillStyle = KLEUR.stoep;
-    roundRect(p.x - 6, p.y - 6, p.w + 12, p.h + 12, 12);
+    /* laadkabel naar de aangesloten auto */
+    if (p.cable) {
+      const naarY = p.opening === "down" ? p.y + 26 : p.y - 16;
+      ctx.strokeStyle = "#2f3336";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(p.cx, p.y + 5);
+      ctx.quadraticCurveTo(p.cx - 14, p.y + (p.opening === "down" ? 16 : -6), p.cx - 9, naarY);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    roundRect(p.cx - 8, p.y - 1, 17, 15, 3);
     ctx.fill();
-    ctx.strokeStyle = KLEUR.stoepRand;
-    ctx.lineWidth = 2;
+    ctx.fillStyle = KLEUR.groenFel;
+    roundRect(p.cx - 9, p.y - 3, 17, 15, 3);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.lineWidth = 1.6;
     ctx.stroke();
-    ctx.fillStyle = KLEUR.gras;
-    roundRect(p.x, p.y, p.w, p.h, 8);
-    ctx.fill();
-
-    const cy = p.y + p.h / 2;
-    [0.22, 0.5, 0.78].forEach(function (f, i) {
-      const tx = p.x + p.w * f;
-      /* schaduw van de boomkruin op het gras en het asfalt */
-      ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
-      ctx.beginPath();
-      ctx.ellipse(tx + 9, cy + 11, 32, 28, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = i === 1 ? "#4d7538" : "#456b32";
-      ctx.beginPath();
-      ctx.arc(tx, cy, 32, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#5d8a44";
-      ctx.beginPath();
-      ctx.arc(tx - 9, cy - 8, 15, 0, Math.PI * 2);
-      ctx.arc(tx + 7, cy + 6, 11, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    /* stekkersymbool */
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(p.cx - 0.5, p.y + 4.5, 3.4, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -617,22 +734,19 @@
     ctx.fill();
 
     /* carrosserie: smalle neus, taille, brede achterschermen, rond kontje */
-    function bodyPath() {
-      ctx.beginPath();
-      ctx.moveTo(0, -45.5);
-      ctx.bezierCurveTo(9, -45.5, 15, -42.5, 16.3, -36);
-      ctx.bezierCurveTo(17.4, -28, 15.8, -20, 15.8, -12);
-      ctx.bezierCurveTo(15.8, -2, 19.6, 6, 20.3, 16);
-      ctx.bezierCurveTo(20.9, 26, 19.8, 36, 16.2, 42);
-      ctx.bezierCurveTo(13, 45.8, 6, 46, 0, 46);
-      ctx.bezierCurveTo(-6, 46, -13, 45.8, -16.2, 42);
-      ctx.bezierCurveTo(-19.8, 36, -20.9, 26, -20.3, 16);
-      ctx.bezierCurveTo(-19.6, 6, -15.8, -2, -15.8, -12);
-      ctx.bezierCurveTo(-15.8, -20, -17.4, -28, -16.3, -36);
-      ctx.bezierCurveTo(-15, -42.5, -9, -45.5, 0, -45.5);
-      ctx.closePath();
-    }
-    bodyPath();
+    ctx.beginPath();
+    ctx.moveTo(0, -45.5);
+    ctx.bezierCurveTo(9, -45.5, 15, -42.5, 16.3, -36);
+    ctx.bezierCurveTo(17.4, -28, 15.8, -20, 15.8, -12);
+    ctx.bezierCurveTo(15.8, -2, 19.6, 6, 20.3, 16);
+    ctx.bezierCurveTo(20.9, 26, 19.8, 36, 16.2, 42);
+    ctx.bezierCurveTo(13, 45.8, 6, 46, 0, 46);
+    ctx.bezierCurveTo(-6, 46, -13, 45.8, -16.2, 42);
+    ctx.bezierCurveTo(-19.8, 36, -20.9, 26, -20.3, 16);
+    ctx.bezierCurveTo(-19.6, 6, -15.8, -2, -15.8, -12);
+    ctx.bezierCurveTo(-15.8, -20, -17.4, -28, -16.3, -36);
+    ctx.bezierCurveTo(-15, -42.5, -9, -45.5, 0, -45.5);
+    ctx.closePath();
     ctx.fillStyle = "#eceef0";
     ctx.fill();
     ctx.strokeStyle = "rgba(0, 0, 0, 0.38)";
@@ -742,13 +856,65 @@
     ctx.lineTo(16, 40.4);
     ctx.stroke();
 
-    /* achterlichten, zichtbaar naast de staart */
-    ctx.fillStyle = "#a8231d";
+    /* achterlichten: fel met gloed bij remmen en achteruitrijden */
+    const rem = car.braking || car.reversing;
+    if (rem) {
+      ctx.fillStyle = "rgba(255, 64, 44, 0.35)";
+      ctx.beginPath();
+      ctx.ellipse(-14.7, 44.6, 6.5, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(14.7, 44.6, 6.5, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = rem ? "#ff4433" : "#a8231d";
     roundRect(-17.4, 43.2, 5.4, 2.4, 1.2);
     ctx.fill();
     roundRect(12, 43.2, 5.4, 2.4, 1.2);
     ctx.fill();
+    /* witte achteruitrijlichten */
+    if (car.reversing) {
+      ctx.lineWidth = 0.9;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.fillStyle = "#fdfbe8";
+      roundRect(-10.8, 43.3, 3.4, 2.2, 1);
+      ctx.fill(); ctx.stroke();
+      roundRect(7.4, 43.3, 3.4, 2.2, 1);
+      ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+  }
 
+  function drawHoldRing(s) {
+    if (!s.holdT || s.holdT < 0.06) return;
+    const frac = Math.min(1, s.holdT / 0.55);
+    const cx = s.x + s.w / 2;
+    const cy = s.y + s.h / 2;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 54, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = KLEUR.blauw;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 54, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* tl-balken aan het plafond, getekend over alles heen */
+  function drawLichten() {
+    ctx.save();
+    function balk(x, y) {
+      ctx.fillStyle = "rgba(255, 255, 240, 0.07)";
+      ctx.beginPath();
+      ctx.ellipse(x, y, 68, 26, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255, 255, 240, 0.17)";
+      roundRect(x - 42, y - 4, 84, 8, 4);
+      ctx.fill();
+    }
+    LICHT_X.forEach(function (x) { balk(x, LAAN_A); balk(x, LAAN_B); });
+    LICHT_EXTRA.forEach(function (p) { balk(p[0], p[1]); });
     ctx.restore();
   }
 
@@ -802,6 +968,19 @@
   document.querySelectorAll("[data-close]").forEach(function (b) {
     b.addEventListener("click", closeModals);
   });
+
+  function updateLevelUI() {
+    document.getElementById("level").textContent = "Niveau " + cur().naam;
+  }
+
+  let levelToastTimer = null;
+  function showLevelToast(tekst) {
+    const t = document.getElementById("level-toast");
+    t.textContent = tekst;
+    t.hidden = false;
+    clearTimeout(levelToastTimer);
+    levelToastTimer = setTimeout(function () { t.hidden = true; }, 2200);
+  }
 
   /* pictogrammen voor de projectpagina, per projecttype */
   const ICONS = {
@@ -959,6 +1138,7 @@
 
   /* ---------- start ---------- */
   updateProgress();
+  updateLevelUI();
   resize();
   requestAnimationFrame(frame);
 
@@ -967,9 +1147,10 @@
     window.__evhDebug = {
       car: car,
       keys: keys,
-      spots: spots,
       step: function (dt) { step(dt); },
-      render: function () { updateCamera(); draw(); }
+      render: function () { updateCamera(); draw(); },
+      getLevel: function () { return level; },
+      setLevel: function (n) { level = n; updateLevelUI(); }
     };
   }
 })();
