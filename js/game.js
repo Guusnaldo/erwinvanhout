@@ -1,4 +1,4 @@
-/* Portfolio-parkeerdek: rijd rond, parkeer in een vak en bekijk een project. */
+/* Portfolio-parkeerplaats: rijd rond, parkeer in een vak en bekijk een project. */
 (function () {
   "use strict";
 
@@ -20,7 +20,7 @@
 
   const spots = [];
   const staticCars = [];
-  const STATIC_COLORS = ["#3f7d99", "#e3b23c", "#7c5a86", "#5b7a80"];
+  const STATIC_COLORS = ["#c3c6c9", "#2e3134", "#39506b", "#e8e9eb"];
   let staticCount = 0;
 
   function addSpot(x, y, opening, key) {
@@ -45,6 +45,7 @@
     addSpot(botRowX + i * SPOT_W, botRowY - 8, "up", key);
   });
 
+  /* groenvakken met bomen, midden op het terrein */
   const planters = [
     { x: 545, y: 430, w: 190, h: 122 },
     { x: 925, y: 430, w: 190, h: 122 }
@@ -267,6 +268,44 @@
   }
 
   /* ---------- tekenen ---------- */
+  const KLEUR = {
+    gras: "#79945c",
+    grasDonker: "rgba(58, 82, 40, 0.16)",
+    stoep: "#b5b8ba",
+    stoepRand: "#9a9da0",
+    asfalt: "#54575b",
+    lijn: "rgba(238, 238, 234, 0.85)",
+    lijnZwak: "rgba(238, 238, 234, 0.4)",
+    blauw: "#1259a6",
+    geel: "#e8b62a"
+  };
+
+  /* vaste posities voor grasvlekken, asfaltreparaties en olievlekken */
+  const GRAS_VLEKKEN = [
+    [90, 120, 60], [1470, 200, 50], [60, 700, 45], [1500, 820, 55],
+    [700, 30, 40], [300, 950, 50], [1200, 960, 40]
+  ];
+  const ASFALT_PLAKKEN = [
+    { x: 260, y: 500, w: 230, h: 74 }, { x: 1180, y: 250, w: 90, h: 190 },
+    { x: 700, y: 640, w: 170, h: 60 }
+  ];
+  const OLIE_VLEKKEN = [
+    [455, 150, 26, 14], [820, 700, 30, 16], [1050, 330, 22, 12], [620, 880, 26, 13]
+  ];
+
+  /* asfaltkorrel als herhalend patroon */
+  const noiseCanvas = document.createElement("canvas");
+  noiseCanvas.width = noiseCanvas.height = 96;
+  (function () {
+    const nctx = noiseCanvas.getContext("2d");
+    for (let i = 0; i < 950; i++) {
+      const shade = Math.random() > 0.5 ? 255 : 0;
+      nctx.fillStyle = "rgba(" + shade + "," + shade + "," + shade + "," + (0.02 + Math.random() * 0.045).toFixed(3) + ")";
+      nctx.fillRect(Math.floor(Math.random() * 96), Math.floor(Math.random() * 96), 1.6, 1.6);
+    }
+  })();
+  let noisePattern = null;
+
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -279,45 +318,71 @@
 
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = "#061b21";
+
+    /* gras als omgeving van het terrein */
+    ctx.fillStyle = KLEUR.gras;
     ctx.fillRect(0, 0, viewW, viewH);
+
     ctx.scale(cam.scale, cam.scale);
     ctx.translate(-cam.ox, -cam.oy);
 
-    /* wegdek */
-    ctx.fillStyle = "#0d2f37";
+    ctx.fillStyle = KLEUR.grasDonker;
+    GRAS_VLEKKEN.forEach(function (v) {
+      ctx.beginPath();
+      ctx.ellipse(v[0], v[1], v[2], v[2] * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    /* stoeprand en asfalt */
+    ctx.fillStyle = KLEUR.stoep;
+    roundRect(8, 8, WORLD.w - 16, WORLD.h - 16, 10);
+    ctx.fill();
+    ctx.strokeStyle = KLEUR.stoepRand;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = KLEUR.asfalt;
     ctx.fillRect(WALL, WALL, WORLD.w - 2 * WALL, WORLD.h - 2 * WALL);
 
-    /* rand */
-    ctx.strokeStyle = "#1a4a55";
-    ctx.lineWidth = WALL;
-    ctx.strokeRect(WALL / 2, WALL / 2, WORLD.w - WALL, WORLD.h - WALL);
+    /* inrit: asfalt loopt onderaan door de stoeprand naar buiten */
+    ctx.fillStyle = KLEUR.asfalt;
+    ctx.fillRect(1240, WORLD.h - WALL, 100, WALL - 4);
 
-    /* groot P-symbool op het midden van het dek */
-    ctx.save();
-    ctx.globalAlpha = 0.06;
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 220px 'Open Sans', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("P", WORLD.w / 2, 500);
-    ctx.restore();
+    /* wegdektextuur en slijtage */
+    if (!noisePattern) noisePattern = ctx.createPattern(noiseCanvas, "repeat");
+    ctx.fillStyle = noisePattern;
+    ctx.fillRect(WALL, WALL, WORLD.w - 2 * WALL, WORLD.h - 2 * WALL);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
+    ASFALT_PLAKKEN.forEach(function (p) { ctx.fillRect(p.x, p.y, p.w, p.h); });
+    ctx.fillStyle = "rgba(18, 20, 24, 0.1)";
+    OLIE_VLEKKEN.forEach(function (v) {
+      ctx.beginPath();
+      ctx.ellipse(v[0], v[1], v[2], v[3], 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
     /* rijstroken met pijlen */
-    drawLane(320);
-    drawLane(662);
+    drawLane(320, 1);
+    drawLane(662, -1);
 
-    /* entree */
+    /* kruisarcering naast de inrit */
+    drawHatch(1380, 250, 140, 170);
+
+    /* startvak */
     ctx.save();
-    ctx.fillStyle = "rgba(255, 218, 0, 0.8)";
-    ctx.font = "700 26px 'Open Sans', sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("START", START.x, START.y + 110);
-    ctx.strokeStyle = "rgba(255, 218, 0, 0.5)";
+    ctx.strokeStyle = KLEUR.lijn;
     ctx.lineWidth = 4;
     ctx.setLineDash([14, 12]);
     ctx.strokeRect(START.x - 62, START.y - 78, 124, 156);
+    ctx.setLineDash([]);
+    ctx.fillStyle = KLEUR.lijn;
+    ctx.font = "700 24px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("START", START.x, START.y + 112);
     ctx.restore();
+
+    drawSign(1478, 560);
 
     spots.forEach(drawSpot);
     planters.forEach(drawPlanter);
@@ -326,24 +391,88 @@
     spots.forEach(drawHoldRing);
   }
 
-  function drawLane(y) {
+  function drawLane(y, dir) {
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.strokeStyle = KLEUR.lijnZwak;
     ctx.lineWidth = 5;
     ctx.setLineDash([30, 26]);
     ctx.beginPath();
     ctx.moveTo(120, y);
     ctx.lineTo(WORLD.w - 120, y);
     ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* geschilderde rijrichtingpijlen */
+    [380, 780, 1180].forEach(function (x) {
+      const y2 = y + (y < WORLD.h / 2 ? 62 : -62);
+      ctx.strokeStyle = KLEUR.lijnZwak;
+      ctx.fillStyle = KLEUR.lijnZwak;
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(x - 26 * dir, y2);
+      ctx.lineTo(x + 14 * dir, y2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + 30 * dir, y2);
+      ctx.lineTo(x + 8 * dir, y2 - 10);
+      ctx.lineTo(x + 8 * dir, y2 + 10);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawHatch(x, y, w, h) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(238, 238, 234, 0.45)";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(x, y, w, h);
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.lineWidth = 4;
+    for (let d = -h; d < w; d += 34) {
+      ctx.beginPath();
+      ctx.moveTo(x + d, y + h);
+      ctx.lineTo(x + d + h, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* blauw P-bord bij de inrit */
+  function drawSign(x, y) {
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    ctx.beginPath();
+    ctx.ellipse(x + 5, y + 32, 20, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7f8285";
+    ctx.fillRect(x - 3, y + 8, 6, 24);
+    ctx.fillStyle = KLEUR.blauw;
+    roundRect(x - 24, y - 34, 48, 48, 8);
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 32px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("P", x, y - 8);
     ctx.restore();
   }
 
   function drawSpot(s) {
-    const lineCol = s.kind === "project" ? "rgba(255,255,255,0.78)" :
-                    s.kind === "static" ? "rgba(255,255,255,0.35)" :
-                    "rgba(255,218,0,0.75)";
     ctx.save();
-    ctx.strokeStyle = lineCol;
+
+    /* de vakken Over en Contact krijgen blauw wegdek, zoals een speciaal vak */
+    if (s.kind === "over" || s.kind === "contact") {
+      ctx.fillStyle = "rgba(18, 89, 166, 0.32)";
+      ctx.fillRect(s.x + 4, s.y + 4, s.w - 8, s.h - 8);
+    }
+
+    ctx.strokeStyle = s.kind === "static" ? KLEUR.lijnZwak : KLEUR.lijn;
     ctx.lineWidth = 4;
     ctx.beginPath();
     if (s.opening === "down") {
@@ -359,8 +488,8 @@
       const cx = s.x + s.w / 2;
       const nearClosed = s.opening === "down" ? s.y + 46 : s.y + s.h - 74;
 
-      ctx.fillStyle = s.kind === "project" ? "rgba(255,255,255,0.85)" : "rgba(255,218,0,0.9)";
-      ctx.font = "700 16px 'Open Sans', sans-serif";
+      ctx.fillStyle = KLEUR.lijn;
+      ctx.font = "600 15px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const parts = label.split(/[\s-]+/);
@@ -372,7 +501,7 @@
 
       if (isDone) {
         const cy = s.opening === "down" ? s.y + s.h - 42 : s.y + 42;
-        ctx.fillStyle = "#2aad89";
+        ctx.fillStyle = KLEUR.blauw;
         ctx.beginPath();
         ctx.arc(cx, cy, 15, 0, Math.PI * 2);
         ctx.fill();
@@ -394,8 +523,12 @@
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
     ctx.save();
-    ctx.strokeStyle = "rgba(42,173,137,0.9)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = KLEUR.blauw;
     ctx.beginPath();
     ctx.arc(cx, cy, 44, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
     ctx.stroke();
@@ -404,21 +537,33 @@
 
   function drawPlanter(p) {
     ctx.save();
-    ctx.fillStyle = "#123c45";
-    roundRect(p.x, p.y, p.w, p.h, 14);
+    /* stoepband rond het groenvak */
+    ctx.fillStyle = KLEUR.stoep;
+    roundRect(p.x - 6, p.y - 6, p.w + 12, p.h + 12, 12);
     ctx.fill();
-    ctx.strokeStyle = "#1e5a63";
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = KLEUR.stoepRand;
+    ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.fillStyle = KLEUR.gras;
+    roundRect(p.x, p.y, p.w, p.h, 8);
+    ctx.fill();
+
     const cy = p.y + p.h / 2;
     [0.22, 0.5, 0.78].forEach(function (f, i) {
-      ctx.fillStyle = i === 1 ? "#1f7a60" : "#1b6a55";
+      const tx = p.x + p.w * f;
+      /* schaduw van de boomkruin op het gras en het asfalt */
+      ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
       ctx.beginPath();
-      ctx.arc(p.x + p.w * f, cy, 34, 0, Math.PI * 2);
+      ctx.ellipse(tx + 9, cy + 11, 32, 28, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(42,173,137,0.5)";
+      ctx.fillStyle = i === 1 ? "#4d7538" : "#456b32";
       ctx.beginPath();
-      ctx.arc(p.x + p.w * f - 8, cy - 8, 14, 0, Math.PI * 2);
+      ctx.arc(tx, cy, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#5d8a44";
+      ctx.beginPath();
+      ctx.arc(tx - 9, cy - 8, 15, 0, Math.PI * 2);
+      ctx.arc(tx + 7, cy + 6, 11, 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.restore();
@@ -426,17 +571,27 @@
 
   function drawStaticCar(sc) {
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
     roundRect(sc.x + 4, sc.y + 6, sc.w, sc.h, 16);
     ctx.fill();
     ctx.fillStyle = sc.color;
     roundRect(sc.x, sc.y, sc.w, sc.h, 16);
     ctx.fill();
-    ctx.fillStyle = "rgba(9,38,45,0.35)";
-    roundRect(sc.x + 9, sc.y + 30, sc.w - 18, sc.h - 74, 10);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    /* spiegels */
+    ctx.fillStyle = sc.color;
+    ctx.fillRect(sc.x - 5, sc.y + 34, 6, 10);
+    ctx.fillRect(sc.x + sc.w - 1, sc.y + 34, 6, 10);
+    /* ruiten en dak */
+    ctx.fillStyle = "rgba(28, 37, 46, 0.8)";
+    roundRect(sc.x + 9, sc.y + 28, sc.w - 18, 22, 7);
     ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
-    roundRect(sc.x + 11, sc.y + 34, sc.w - 22, 20, 6);
+    roundRect(sc.x + 10, sc.y + sc.h - 40, sc.w - 20, 16, 6);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+    roundRect(sc.x + 9, sc.y + 54, sc.w - 18, sc.h - 96, 6);
     ctx.fill();
     ctx.restore();
   }
@@ -447,35 +602,39 @@
     ctx.rotate(car.heading + Math.PI / 2); /* tekenen met neus omhoog */
     const w = CAR.wid, l = CAR.len;
 
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
     roundRect(-w / 2 + 3, -l / 2 + 5, w, l, 14);
     ctx.fill();
 
-    ctx.fillStyle = "#de4528";
+    ctx.fillStyle = "#c63a2f";
     roundRect(-w / 2, -l / 2, w, l, 14);
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    /* cabine */
-    ctx.fillStyle = "#8e2717";
-    roundRect(-w / 2 + 6, -l / 2 + 24, w - 12, l - 52, 8);
+    /* spiegels */
+    ctx.fillStyle = "#c63a2f";
+    ctx.fillRect(-w / 2 - 5, -l / 2 + 30, 6, 9);
+    ctx.fillRect(w / 2 - 1, -l / 2 + 30, 6, 9);
+
+    /* voorruit, dak en achterruit */
+    ctx.fillStyle = "rgba(24, 33, 42, 0.85)";
+    roundRect(-w / 2 + 6, -l / 2 + 24, w - 12, 15, 5);
     ctx.fill();
-    /* voorruit */
-    ctx.fillStyle = "rgba(214,239,244,0.85)";
-    roundRect(-w / 2 + 7, -l / 2 + 26, w - 14, 13, 5);
+    roundRect(-w / 2 + 7, l / 2 - 32, w - 14, 12, 5);
     ctx.fill();
-    /* achterruit */
-    ctx.fillStyle = "rgba(214,239,244,0.55)";
-    roundRect(-w / 2 + 7, l / 2 - 34, w - 14, 10, 5);
+    ctx.fillStyle = "#a92e24";
+    roundRect(-w / 2 + 7, -l / 2 + 41, w - 14, l - 76, 6);
     ctx.fill();
-    /* koplampen */
-    ctx.fillStyle = "#ffe9a8";
-    ctx.beginPath();
-    ctx.arc(-w / 2 + 9, -l / 2 + 8, 4, 0, Math.PI * 2);
-    ctx.arc(w / 2 - 9, -l / 2 + 8, 4, 0, Math.PI * 2);
-    ctx.fill();
+
+    /* koplampen en achterlichten */
+    ctx.fillStyle = "#f2eecb";
+    ctx.fillRect(-w / 2 + 4, -l / 2 + 2, 10, 4);
+    ctx.fillRect(w / 2 - 14, -l / 2 + 2, 10, 4);
+    ctx.fillStyle = "#801d14";
+    ctx.fillRect(-w / 2 + 4, l / 2 - 6, 10, 4);
+    ctx.fillRect(w / 2 - 14, l / 2 - 6, 10, 4);
     ctx.restore();
   }
 
@@ -509,7 +668,9 @@
     uiOpen = true;
     backdrop.hidden = false;
     document.querySelectorAll(".modal").forEach(function (m) { m.hidden = true; });
-    document.getElementById(id).hidden = false;
+    const modal = document.getElementById(id);
+    modal.hidden = false;
+    modal.scrollTop = 0;
   }
 
   function closeModals() {
@@ -528,11 +689,59 @@
     b.addEventListener("click", closeModals);
   });
 
+  /* pictogrammen voor de projectpagina, per projecttype */
+  const ICONS = {
+    garage: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 40V16L24 7l18 9v24"/><path d="M13 40V24h22v16"/><path d="M13 31h22"/></svg>',
+    ondergronds: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14h38"/><path d="M24 20v16"/><path d="M17 30l7 7 7-7"/><path d="M11 14v6M37 14v6"/></svg>',
+    terrein: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="10" width="36" height="28" rx="3"/><path d="M18 10v28M30 10v28M6 24h36"/></svg>',
+    pr: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="9" width="20" height="22" rx="4"/><path d="M11 36v4M21 36v4M6 24h20M10 31h.01M22 31h.01"/><path d="M32 15h6a5 5 0 0 1 0 10h-6v14M32 15v10"/></svg>',
+    fiets: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="32" r="8"/><circle cx="36" cy="32" r="8"/><path d="M12 32l8-14h11M24 32l-4-14M31 18l5 14M18 18h9"/></svg>',
+    route: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 42V16a8 8 0 0 1 16 0v16a8 8 0 0 0 16 0V12"/><path d="M36 18l6-6 6 6"/></svg>'
+  };
+
+  let currentProject = 0;
+
   function openProject(p) {
-    document.getElementById("proj-titel").textContent = p.titel;
-    document.getElementById("proj-meta").textContent = p.plaats + " · " + p.jaar + " · " + p.cijfer;
+    currentProject = PROJECTS.indexOf(p);
+    document.getElementById("proj-icon").innerHTML = ICONS[p.type] || ICONS.garage;
     document.getElementById("proj-rol").textContent = p.rol;
-    document.getElementById("proj-tekst").textContent = p.tekst;
+    document.getElementById("proj-titel").textContent = p.titel;
+    document.getElementById("proj-meta").textContent = p.plaats + " · " + p.periode;
+    document.getElementById("proj-intro").textContent = p.intro;
+
+    const facts = document.getElementById("proj-facts");
+    facts.innerHTML = "";
+    [
+      ["Locatie", p.plaats],
+      ["Periode", p.periode],
+      ["Rol", p.rol],
+      ["Omvang", p.capaciteit],
+      ["Opdrachtgever", p.opdrachtgever],
+      ["Status", p.status]
+    ].forEach(function (f) {
+      if (!f[1]) return;
+      const wrap = document.createElement("div");
+      const dt = document.createElement("dt");
+      dt.textContent = f[0];
+      const dd = document.createElement("dd");
+      dd.textContent = f[1];
+      wrap.appendChild(dt);
+      wrap.appendChild(dd);
+      facts.appendChild(wrap);
+    });
+
+    document.getElementById("proj-opgave").textContent = p.opgave;
+    document.getElementById("proj-aanpak").textContent = p.aanpak;
+    document.getElementById("proj-resultaat").textContent = p.resultaat;
+
+    const ken = document.getElementById("proj-kenmerken");
+    ken.innerHTML = "";
+    (p.kenmerken || []).forEach(function (k) {
+      const li = document.createElement("li");
+      li.textContent = k;
+      ken.appendChild(li);
+    });
+
     const tagBox = document.getElementById("proj-tags");
     tagBox.innerHTML = "";
     p.tags.forEach(function (t) {
@@ -549,6 +758,13 @@
     }
     openModal("modal-project");
   }
+
+  document.getElementById("proj-prev").addEventListener("click", function () {
+    openProject(PROJECTS[(currentProject - 1 + PROJECTS.length) % PROJECTS.length]);
+  });
+  document.getElementById("proj-next").addEventListener("click", function () {
+    openProject(PROJECTS[(currentProject + 1) % PROJECTS.length]);
+  });
 
   function updateProgress() {
     const done = PROJECTS.filter(function (p) { return visited.has(p.id); }).length;
@@ -574,7 +790,7 @@
       name.textContent = p.titel;
       const meta = document.createElement("span");
       meta.className = "list-meta";
-      meta.textContent = visited.has(p.id) ? "bekeken" : p.jaar;
+      meta.textContent = visited.has(p.id) ? "bekeken" : p.periode;
       if (visited.has(p.id)) meta.classList.add("list-done");
       btn.appendChild(name);
       btn.appendChild(meta);
