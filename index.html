@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Erwin van Hout | Portfolio in parkeervorm</title>
+  <meta name="description" content="Portfolio van Erwin van Hout. Rijd rond op het parkeerdek, parkeer in een vak en ontdek per plek een parkeerproject.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2309262d'/%3E%3Ctext x='32' y='44' font-family='Arial' font-size='36' font-weight='700' fill='%232aad89' text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <canvas id="scene"></canvas>
+
+  <header class="topbar">
+    <div class="brand">
+      <strong>Erwin van Hout</strong>
+      <span>Portfolio in parkeervorm</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill progress" id="progress">0 / 6 projecten</span>
+    <button class="pill" id="btn-list" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+      <span class="pill-label">Projectenlijst</span>
+    </button>
+    <button class="pill" id="btn-over" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4"/></svg>
+      <span class="pill-label">Over</span>
+    </button>
+    <button class="pill" id="btn-reset" type="button" title="Auto terug naar start (R)">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0 .4 4"/><path d="M20 4v7h-7"/></svg>
+      <span class="pill-label">Terug naar start</span>
+    </button>
+  </header>
+
+  <div class="hintbar">
+    <span class="hint-keys">Rijden met <kbd>&#8593;</kbd><kbd>&#8595;</kbd><kbd>&#8592;</kbd><kbd>&#8594;</kbd> of <kbd>WASD</kbd>, parkeer stil in een vak</span>
+    <span class="hint-touch">Rijd met de knoppen en parkeer stil in een vak</span>
+  </div>
+
+  <div class="touch-controls">
+    <div class="tc-group">
+      <button class="tc-btn" id="tc-left" type="button" aria-label="Stuur links">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <button class="tc-btn" id="tc-right" type="button" aria-label="Stuur rechts">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="tc-group">
+      <button class="tc-btn" id="tc-down" type="button" aria-label="Achteruit">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>
+      </button>
+      <button class="tc-btn" id="tc-up" type="button" aria-label="Vooruit">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="intro" id="intro">
+    <div class="intro-card">
+      <div class="intro-p">P</div>
+      <h1>Erwin van Hout</h1>
+      <p class="intro-sub">Portfolio in parkeervorm</p>
+      <p class="uitleg">Welkom op het ontdekkingsdek. Rijd rond met de auto en parkeer in een vak: elke parkeerplek onthult een project waar Erwin aan werkte. Lukt het je om alle zes de plekken te vinden?</p>
+      <button class="btn-primary" id="btn-start" type="button">Starten</button>
+      <span class="intro-alt">Liever niet rijden? <a href="#" id="intro-list">Bekijk de projecten als lijst</a></span>
+    </div>
+  </div>
+
+  <div class="backdrop" id="backdrop" hidden>
+
+    <div class="modal" id="modal-project" hidden>
+      <button class="modal-close" type="button" data-close aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <h2 id="proj-titel"></h2>
+      <p class="meta" id="proj-meta"></p>
+      <span class="rol" id="proj-rol"></span>
+      <p class="tekst" id="proj-tekst"></p>
+      <div class="chips" id="proj-tags"></div>
+      <div class="doorrijden">
+        <button class="btn-primary" type="button" data-close>Verder rijden</button>
+      </div>
+    </div>
+
+    <div class="modal" id="modal-list" hidden>
+      <button class="modal-close" type="button" data-close aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <h2>Projecten</h2>
+      <p class="meta">Klik op een project voor meer informatie</p>
+      <ul id="project-list"></ul>
+    </div>
+
+    <div class="modal" id="modal-over" hidden>
+      <button class="modal-close" type="button" data-close aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <h2>Over Erwin</h2>
+      <p class="tekst" id="over-tekst"></p>
+      <div class="doorrijden">
+        <button class="btn-primary" type="button" data-close>Verder rijden</button>
+      </div>
+    </div>
+
+    <div class="modal" id="modal-contact" hidden>
+      <button class="modal-close" type="button" data-close aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <h2>Contact</h2>
+      <p class="tekst" id="contact-tekst"></p>
+      <div class="doorrijden">
+        <button class="btn-primary" type="button" data-close>Verder rijden</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast" hidden>Alle projecten bekeken, bedankt voor je bezoek</div>
+
+  <script src="js/projects.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
