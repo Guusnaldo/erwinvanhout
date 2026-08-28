@@ -20,7 +20,7 @@
 
   const spots = [];
   const staticCars = [];
-  const STATIC_COLORS = ["#c3c6c9", "#2e3134", "#39506b", "#e8e9eb"];
+  const STATIC_COLORS = ["#c3c6c9", "#2e3134", "#39506b", "#44573f"];
   let staticCount = 0;
 
   function addSpot(x, y, opening, key) {
@@ -245,7 +245,12 @@
     const availH = Math.max(200, viewH - TOP_BAND - BOT_BAND);
     const fit = Math.min(viewW / WORLD.w, availH / WORLD.h);
     let scale, tx, ty;
-    if (fit >= 0.3) {
+    const dbgZoom = window.__evhDebug && window.__evhDebug.zoom;
+    if (dbgZoom) {
+      scale = dbgZoom;
+      tx = car.x - viewW / scale / 2;
+      ty = car.y - viewH / scale / 2;
+    } else if (fit >= 0.3) {
       scale = fit;
       tx = -((viewW - WORLD.w * scale) / 2) / scale;
       ty = -(TOP_BAND + (availH - WORLD.h * scale) / 2) / scale;
@@ -596,45 +601,153 @@
     ctx.restore();
   }
 
+  /* de heldauto: een witte klassieke 911 van boven, met walvisstaart */
   function drawHero() {
     ctx.save();
     ctx.translate(car.x, car.y);
     ctx.rotate(car.heading + Math.PI / 2); /* tekenen met neus omhoog */
-    const w = CAR.wid, l = CAR.len;
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-    roundRect(-w / 2 + 3, -l / 2 + 5, w, l, 14);
+    const GLAS = "rgba(22, 30, 38, 0.88)";
+
+    /* slagschaduw */
+    ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
+    ctx.beginPath();
+    ctx.ellipse(2.5, 4, 23.5, 46, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#c63a2f";
-    roundRect(-w / 2, -l / 2, w, l, 14);
+    /* carrosserie: smalle neus, taille, brede achterschermen, rond kontje */
+    function bodyPath() {
+      ctx.beginPath();
+      ctx.moveTo(0, -45.5);
+      ctx.bezierCurveTo(9, -45.5, 15, -42.5, 16.3, -36);
+      ctx.bezierCurveTo(17.4, -28, 15.8, -20, 15.8, -12);
+      ctx.bezierCurveTo(15.8, -2, 21.3, 6, 22.3, 16);
+      ctx.bezierCurveTo(23, 26, 21.8, 36, 17.8, 42);
+      ctx.bezierCurveTo(14, 45.8, 6, 46, 0, 46);
+      ctx.bezierCurveTo(-6, 46, -14, 45.8, -17.8, 42);
+      ctx.bezierCurveTo(-21.8, 36, -23, 26, -22.3, 16);
+      ctx.bezierCurveTo(-21.3, 6, -15.8, -2, -15.8, -12);
+      ctx.bezierCurveTo(-15.8, -20, -17.4, -28, -16.3, -36);
+      ctx.bezierCurveTo(-15, -42.5, -9, -45.5, 0, -45.5);
+      ctx.closePath();
+    }
+    bodyPath();
+    ctx.fillStyle = "#eceef0";
     ctx.fill();
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.38)";
+    ctx.lineWidth = 1.8;
     ctx.stroke();
 
-    /* spiegels */
-    ctx.fillStyle = "#c63a2f";
-    ctx.fillRect(-w / 2 - 5, -l / 2 + 30, 6, 9);
-    ctx.fillRect(w / 2 - 1, -l / 2 + 30, 6, 9);
+    /* buitenspiegels */
+    ctx.fillStyle = "#eceef0";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.lineWidth = 1.2;
+    roundRect(-20.6, -20, 4.8, 6.5, 2);
+    ctx.fill(); ctx.stroke();
+    roundRect(15.8, -20, 4.8, 6.5, 2);
+    ctx.fill(); ctx.stroke();
 
-    /* voorruit, dak en achterruit */
-    ctx.fillStyle = "rgba(24, 33, 42, 0.85)";
-    roundRect(-w / 2 + 6, -l / 2 + 24, w - 12, 15, 5);
+    /* naden van de voorklep, tussen de schermen */
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-10.5, -18);
+    ctx.bezierCurveTo(-9, -28, -7.5, -34, -5.8, -40);
+    ctx.quadraticCurveTo(0, -42.5, 5.8, -40);
+    ctx.bezierCurveTo(7.5, -34, 9, -28, 10.5, -18);
+    ctx.stroke();
+
+    /* ronde koplampen op de schermen, met chromen rand */
+    [-11.3, 11.3].forEach(function (hx) {
+      ctx.fillStyle = "#f7f4dc";
+      ctx.beginPath();
+      ctx.arc(hx, -37, 4.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    });
+    /* knipperlichten onder de koplampen, aan de rand van de neus */
+    ctx.fillStyle = "#d99a2b";
+    roundRect(-9.8, -43.4, 3.4, 2.2, 1);
     ctx.fill();
-    roundRect(-w / 2 + 7, l / 2 - 32, w - 14, 12, 5);
-    ctx.fill();
-    ctx.fillStyle = "#a92e24";
-    roundRect(-w / 2 + 7, -l / 2 + 41, w - 14, l - 76, 6);
+    roundRect(6.4, -43.4, 3.4, 2.2, 1);
     ctx.fill();
 
-    /* koplampen en achterlichten */
-    ctx.fillStyle = "#f2eecb";
-    ctx.fillRect(-w / 2 + 4, -l / 2 + 2, 10, 4);
-    ctx.fillRect(w / 2 - 14, -l / 2 + 2, 10, 4);
-    ctx.fillStyle = "#801d14";
-    ctx.fillRect(-w / 2 + 4, l / 2 - 6, 10, 4);
-    ctx.fillRect(w / 2 - 14, l / 2 - 6, 10, 4);
+    /* voorruit: breed bij de motorkap, smaller bij het dak */
+    ctx.fillStyle = GLAS;
+    ctx.beginPath();
+    ctx.moveTo(-13.5, -20);
+    ctx.quadraticCurveTo(0, -22.5, 13.5, -20);
+    ctx.lineTo(11, -8);
+    ctx.quadraticCurveTo(0, -6.5, -11, -8);
+    ctx.closePath();
+    ctx.fill();
+
+    /* zijruiten: gebogen glasranden die de daklijn volgen */
+    ctx.strokeStyle = "rgba(22, 30, 38, 0.6)";
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-13.2, -15);
+    ctx.quadraticCurveTo(-15.2, -2, -13.2, 11);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(13.2, -15);
+    ctx.quadraticCurveTo(15.2, -2, 13.2, 11);
+    ctx.stroke();
+    ctx.lineCap = "butt";
+
+    /* achterruit, aflopend naar het motordek */
+    ctx.fillStyle = GLAS;
+    ctx.beginPath();
+    ctx.moveTo(-11, 6);
+    ctx.quadraticCurveTo(0, 4.5, 11, 6);
+    ctx.lineTo(12.2, 18.5);
+    ctx.quadraticCurveTo(0, 21.5, -12.2, 18.5);
+    ctx.closePath();
+    ctx.fill();
+
+    /* motordek met luchtrooster */
+    roundRect(-9, 23.5, 18, 11, 3.5);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+    ctx.lineWidth = 1.5;
+    [26.4, 29.2, 32].forEach(function (gy) {
+      ctx.beginPath();
+      ctx.moveTo(-6.8, gy);
+      ctx.lineTo(6.8, gy);
+      ctx.stroke();
+    });
+
+    /* walvisstaart met zwarte rubberrand */
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    roundRect(-19.5, 34.2, 39, 3.6, 1.8);
+    ctx.fill();
+    roundRect(-21, 36, 42, 8.6, 3.2);
+    ctx.fillStyle = "#e2e4e6";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(20, 22, 24, 0.65)";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-18, 40.4);
+    ctx.lineTo(18, 40.4);
+    ctx.stroke();
+
+    /* achterlichten, zichtbaar naast de staart */
+    ctx.fillStyle = "#a8231d";
+    roundRect(-19.2, 43.2, 6, 2.4, 1.2);
+    ctx.fill();
+    roundRect(13.2, 43.2, 6, 2.4, 1.2);
+    ctx.fill();
+
     ctx.restore();
   }
 
