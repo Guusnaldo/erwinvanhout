@@ -6,7 +6,7 @@ Persoonlijke portfoliosite als verkennend parkeerspel. Je rijdt met een auto ove
 
 Alle projectinhoud is nu **voorbeeldcontent** en staat in [`js/projects.js`](js/projects.js):
 
-- `PROJECTS`: de zes projecten (titel, plaats, jaar, rol, kerncijfer, omschrijving, tags). Zet `placeholder` op `false` of verwijder de regel zodra een project echt is; zolang die op `true` staat toont de site een "voorbeeldproject"-label.
+- `PROJECTS`: de zes projecten. Per project: titel, type (bepaalt het pictogram), plaats, periode, rol, capaciteit, opdrachtgever, status, intro, de tekstblokken opgave, aanpak en resultaat, kenmerken en tags. Zet `placeholder` op `false` of verwijder de regel zodra een project echt is; zolang die op `true` staat toont de site een "voorbeeldproject"-label.
 - `OVER_TEKST` en `CONTACT_TEKST`: de teksten achter de vakken Over en Contact.
 
 Meer of minder dan zes projecten kan ook: pas dan in `js/game.js` de `TOP_ORDER`-lijst aan (`p0` t/m `p5` zijn projectindexen, `static` is een bezette plek).
@@ -24,7 +24,7 @@ Zero-build vanilla HTML/CSS/JS, geen dependencies en geen build-stap. Canvas 2D 
 
 ```
 index.html        pagina, vensters, knoppen
-css/style.css     stijl (Spark-achtig palet: petrol, mint, geel, rood)
+css/style.css     stijl (licht en neutraal, verkeersblauw accent)
 js/projects.js    projectdata (hier vervang je de inhoud)
 js/game.js        spel: fysica, parkeerdetectie, tekenen, interface
 ```
