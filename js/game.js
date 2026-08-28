@@ -66,7 +66,7 @@
   }
 
   /* ---------- auto ---------- */
-  const CAR = { len: 92, wid: 46 };
+  const CAR = { len: 124, wid: 56 };
   const START = { x: 1290, y: 620, heading: -Math.PI / 2 };
   const car = { x: START.x, y: START.y, heading: START.heading, v: 0 };
 
@@ -378,13 +378,13 @@
     ctx.strokeStyle = KLEUR.lijn;
     ctx.lineWidth = 4;
     ctx.setLineDash([14, 12]);
-    ctx.strokeRect(START.x - 62, START.y - 78, 124, 156);
+    ctx.strokeRect(START.x - 70, START.y - 88, 140, 176);
     ctx.setLineDash([]);
     ctx.fillStyle = KLEUR.lijn;
     ctx.font = "700 24px Inter, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("START", START.x, START.y + 112);
+    ctx.fillText("START", START.x, START.y + 118);
     ctx.restore();
 
     drawSign(1478, 560);
@@ -531,11 +531,11 @@
     ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 54, 0, Math.PI * 2);
     ctx.stroke();
     ctx.strokeStyle = KLEUR.blauw;
     ctx.beginPath();
-    ctx.arc(cx, cy, 44, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+    ctx.arc(cx, cy, 54, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -606,13 +606,14 @@
     ctx.save();
     ctx.translate(car.x, car.y);
     ctx.rotate(car.heading + Math.PI / 2); /* tekenen met neus omhoog */
+    ctx.scale(1.35, 1.35); /* tekening staat in 92x46-maten, botsingsbox is 124x56 */
 
     const GLAS = "rgba(22, 30, 38, 0.88)";
 
     /* slagschaduw */
     ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
     ctx.beginPath();
-    ctx.ellipse(2.5, 4, 23.5, 46, 0, 0, Math.PI * 2);
+    ctx.ellipse(2.5, 4, 22, 46, 0, 0, Math.PI * 2);
     ctx.fill();
 
     /* carrosserie: smalle neus, taille, brede achterschermen, rond kontje */
@@ -621,12 +622,12 @@
       ctx.moveTo(0, -45.5);
       ctx.bezierCurveTo(9, -45.5, 15, -42.5, 16.3, -36);
       ctx.bezierCurveTo(17.4, -28, 15.8, -20, 15.8, -12);
-      ctx.bezierCurveTo(15.8, -2, 21.3, 6, 22.3, 16);
-      ctx.bezierCurveTo(23, 26, 21.8, 36, 17.8, 42);
-      ctx.bezierCurveTo(14, 45.8, 6, 46, 0, 46);
-      ctx.bezierCurveTo(-6, 46, -14, 45.8, -17.8, 42);
-      ctx.bezierCurveTo(-21.8, 36, -23, 26, -22.3, 16);
-      ctx.bezierCurveTo(-21.3, 6, -15.8, -2, -15.8, -12);
+      ctx.bezierCurveTo(15.8, -2, 19.6, 6, 20.3, 16);
+      ctx.bezierCurveTo(20.9, 26, 19.8, 36, 16.2, 42);
+      ctx.bezierCurveTo(13, 45.8, 6, 46, 0, 46);
+      ctx.bezierCurveTo(-6, 46, -13, 45.8, -16.2, 42);
+      ctx.bezierCurveTo(-19.8, 36, -20.9, 26, -20.3, 16);
+      ctx.bezierCurveTo(-19.6, 6, -15.8, -2, -15.8, -12);
       ctx.bezierCurveTo(-15.8, -20, -17.4, -28, -16.3, -36);
       ctx.bezierCurveTo(-15, -42.5, -9, -45.5, 0, -45.5);
       ctx.closePath();
@@ -726,9 +727,9 @@
 
     /* walvisstaart met zwarte rubberrand */
     ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
-    roundRect(-19.5, 34.2, 39, 3.6, 1.8);
+    roundRect(-17.5, 34.2, 35, 3.6, 1.8);
     ctx.fill();
-    roundRect(-21, 36, 42, 8.6, 3.2);
+    roundRect(-19, 36, 38, 8.6, 3.2);
     ctx.fillStyle = "#e2e4e6";
     ctx.fill();
     ctx.strokeStyle = "rgba(20, 22, 24, 0.65)";
@@ -737,15 +738,15 @@
     ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
     ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(-18, 40.4);
-    ctx.lineTo(18, 40.4);
+    ctx.moveTo(-16, 40.4);
+    ctx.lineTo(16, 40.4);
     ctx.stroke();
 
     /* achterlichten, zichtbaar naast de staart */
     ctx.fillStyle = "#a8231d";
-    roundRect(-19.2, 43.2, 6, 2.4, 1.2);
+    roundRect(-17.4, 43.2, 5.4, 2.4, 1.2);
     ctx.fill();
-    roundRect(13.2, 43.2, 6, 2.4, 1.2);
+    roundRect(12, 43.2, 5.4, 2.4, 1.2);
     ctx.fill();
 
     ctx.restore();

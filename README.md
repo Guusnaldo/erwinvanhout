@@ -40,3 +40,35 @@ python3 -m http.server 8000
 ## Publiceren
 
 De site staat op GitHub Pages (Settings, Pages, deploy vanaf de `main`-branch, root). Elke push naar `main` werkt de site bij.
+
+## Hosten op erwinvanhout.nl
+
+Het domein staat bij TransIP en wijst nu nog naar TransIP-hosting. Omzetten naar deze site gaat in twee stappen.
+
+**Stap 1: DNS aanpassen bij TransIP** (transip.nl, Domeinen, erwinvanhout.nl, DNS). Verwijder de bestaande A- en AAAA-records op het hoofddomein en zet dit ervoor in de plaats:
+
+| Naam | Type  | Waarde |
+|------|-------|--------|
+| @    | A     | 185.199.108.153 |
+| @    | A     | 185.199.109.153 |
+| @    | A     | 185.199.110.153 |
+| @    | A     | 185.199.111.153 |
+| @    | AAAA  | 2606:50c0:8000::153 |
+| @    | AAAA  | 2606:50c0:8001::153 |
+| @    | AAAA  | 2606:50c0:8002::153 |
+| @    | AAAA  | 2606:50c0:8003::153 |
+| www  | CNAME | guusnaldo.github.io. |
+
+**Stap 2: domein koppelen in GitHub** (pas doen nadat de DNS is aangepast, anders verwijst de site tijdelijk naar de oude TransIP-pagina):
+
+```
+gh api repos/Guusnaldo/erwinvanhout/pages -X PUT -f cname=erwinvanhout.nl
+```
+
+Of via de website: repo Settings, Pages, Custom domain, `erwinvanhout.nl` invullen en opslaan. GitHub maakt dan zelf een `CNAME`-bestand in de repo aan. Zodra de DNS-controle groen is en het certificaat is uitgegeven (kan tot een uur duren), zet je "Enforce HTTPS" aan:
+
+```
+gh api repos/Guusnaldo/erwinvanhout/pages -X PUT -F https_enforced=true
+```
+
+Daarna is de site bereikbaar op https://erwinvanhout.nl en verwijst www automatisch door.
